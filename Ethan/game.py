@@ -2,6 +2,7 @@ import pygame
 import random
 import time
 import math
+import string
 
 pygame.init()
 
@@ -61,11 +62,13 @@ current_speed = move_speed
 a_pressed = False
 d_pressed = False
 dodge_speed = 50
+dodge_press_duration = 0.2
+last_dodge_time = 0
 
 enemies = [
-    {"x": 100, "y": HEIGHT - 150, "width": 50, "height": 50, "speed": 2, "health": 100, "attack_start_time": 0, "looking_left": True},
-    {"x": 300, "y": HEIGHT - 150, "width": 50, "height": 50, "speed": 3, "health": 100, "attack_start_time": 0, "looking_left": False},
-    {"x": 500, "y": HEIGHT - 150, "width": 50, "height": 50, "speed": 4, "health": 100, "attack_start_time": 0, "looking_left": True},
+    {"id": 1, "x": 100, "y": HEIGHT - 150, "width": 50, "height": 50, "speed": 2, "health": 100, "attack_start_time": 0, "looking_left": True},
+    {"id": 2, "x": 300, "y": HEIGHT - 150, "width": 50, "height": 50, "speed": 3, "health": 100, "attack_start_time": 0, "looking_left": False},
+    {"id": 3, "x": 500, "y": HEIGHT - 150, "width": 50, "height": 50, "speed": 4, "health": 100, "attack_start_time": 0, "looking_left": True},
 ]
 
 enemy_hit = False
@@ -74,10 +77,12 @@ font = pygame.font.Font(None, 36)
 
 damage_numbers = []
 
-def insert_damage_number(damage, x, y):
+enemies_in_flash = []
+
+def insert_damage_number(damage, x, y, to_player):
     offset_x = random.randint(-20, 20)
     offset_y = random.randint(-20, 20)
-    damage_numbers.append({"damage": damage, "x": x + offset_x, "y": y + offset_y, "timestamp": time.time()})
+    damage_numbers.append({"damage": damage, "x": x + offset_x, "y": y + offset_y, "timestamp": time.time(), "to_player": to_player})
 
 def find_closest_enemy(player_x, enemies):
     closest_enemy = None
@@ -96,6 +101,9 @@ def find_closest_enemy(player_x, enemies):
     return look_left, closest_enemy
 
 def dodge():
+    global last_dodge_time
+    if time.time() - last_dodge_time < 0.5:
+        return
     global player_x, player_y
     if not a_pressed and not d_pressed:
         if looking_left:
@@ -107,7 +115,16 @@ def dodge():
             player_x -= dodge_speed
         if d_pressed:
             player_x += dodge_speed
+    last_dodge_time = time.time()
 
+def move_enemy_forward(enemy, amount):
+    if enemy["looking_left"]:
+        enemy["x"] -= amount
+    else:
+        enemy["x"] += amount
+
+def random_enemy_id():
+    return ''.join(random.choices(string.ascii_letters, k=7))
 
 # ---------------------------
 
@@ -146,14 +163,14 @@ while running:
                 shift_start_time = time.time()
             shift_pressed = True
             shift_released = False
-        if time.time() - shift_start_time > 0.2:
+        if time.time() - shift_start_time > dodge_press_duration:
             current_speed = sprint_speed
     else:
         shift_pressed = False
         current_speed = move_speed
 
     if not shift_pressed and not shift_released:
-        if time.time() - shift_start_time <= 0.2:
+        if time.time() - shift_start_time <= dodge_press_duration:
             dodge()
         shift_released = True
 
@@ -180,11 +197,7 @@ while running:
         sword_body_y = player_y + (player_height // 2) - (sword_body_height // 2)
         sword_tip = (player_x + player_width + sword_tip_width, player_y + player_height // 2)
         sword_base1 = (player_x + player_width + sword_body_width, player_y + player_height // 2 - sword_tip_height // 2)
-        sword_base2 = (player_x + player_width + sword_body_width, player_y + player_height // 2 + sword_tip_height // 2)
-
-    for enemy in enemies:
-        if random.randint(0, 300) == 0:
-            enemy["attack_start_time"] = time.time()
+        sword_base2 = (player_x + player_width + sword_body_width, player_y + player_height // 2 + sword_tip_height // 2)     
 
     if swinging_sword and not enemy_hit:
         sword_rect = pygame.Rect(sword_body_x, sword_body_y, sword_body_width, sword_body_height)
@@ -194,12 +207,24 @@ while running:
                 enemy["health"] -= 10
                 if enemy["health"] <= 0:
                     enemies.remove(enemy)
-                insert_damage_number(10, enemy["x"], enemy["y"])
+                insert_damage_number(10, enemy["x"], enemy["y"], False)
                 enemy_hit = True
 
     for enemy in enemies:
+        if time.time() - enemy["attack_start_time"] > 5 and random.randint(0, 300) < enemy["speed"]:
+            if enemy["x"] < player_x:
+                enemy["looking_left"] = False
+            else:
+                enemy["looking_left"] = True
+            enemy["attack_start_time"] = time.time()
+
         enemy["time_elapsed"] = time.time() - enemy["attack_start_time"]
-        if 0.5 <= enemy["time_elapsed"] <= 1:
+        if enemy["time_elapsed"] <= 0.3:
+            if enemy["id"] not in enemies_in_flash:
+                enemies_in_flash.append(enemy["id"])
+        elif 0.5 <= enemy["time_elapsed"] <= 1:
+            if enemy["id"] in enemies_in_flash:
+                enemies_in_flash.remove(enemy["id"])
             if enemy["looking_left"]:
                 enemy["sword_body_x"] = enemy["x"] - sword_body_width
                 enemy["sword_body_y"] = enemy["y"] + (enemy["height"] // 2) - (sword_body_height // 2)
@@ -214,17 +239,17 @@ while running:
                 enemy["sword_base2"] = (enemy["x"] + enemy["width"] + sword_body_width, enemy["y"] + enemy["height"] // 2 + sword_tip_height // 2)
 
             if 0.5 <= enemy["time_elapsed"] <= 0.6:
+                if abs(player_x - enemy["x"]) > 50:
+                    move_enemy_forward(enemy, enemy["speed"])
                 enemy_sword_rect = pygame.Rect(enemy["sword_body_x"], enemy["sword_body_y"], enemy_sword_body_width, enemy_sword_body_height)
                 if not enemy["hit_player"] and enemy_sword_rect.colliderect(pygame.Rect(player_x, player_y, player_width, player_height)):
                     enemy["hit_player"] = True
                     player_health -= 10
-                    insert_damage_number(10, player_x, player_y)
+                    insert_damage_number(10, player_x, player_y, True)
         else:
             enemy["hit_player"] = False
-
-    print("shift_pressed:", shift_pressed)
-    print("shift_released:", shift_released)
-    print("current_speed:", current_speed)
+    
+    print(enemies_in_flash)
 
     # GAME STATE UPDATES
     # All game math and comparisons happen here
@@ -264,7 +289,7 @@ while running:
                 pygame.draw.rect(screen, (192, 192, 192), (enemy["sword_body_x"], enemy["sword_body_y"], enemy_sword_body_width, enemy_sword_body_height))
                 pygame.draw.polygon(screen, (192, 192, 192), [enemy["sword_tip"], enemy["sword_base1"], enemy["sword_base2"]])
 
-    pygame.draw.rect(screen, (255, 0, 0), (player_x, player_y, player_width, player_height))
+    pygame.draw.rect(screen, (0, 0, 255), (player_x, player_y, player_width, player_height))
     health_bar_width = player_width * player_health / 100
     pygame.draw.rect(screen, (255, 0, 0), (player_x, player_y - 10, health_bar_width, 5))
 
@@ -277,7 +302,8 @@ while running:
 
     damage_numbers = [dn for dn in damage_numbers if time.time() - dn["timestamp"] < 1]
     for dn in damage_numbers:
-        damage_text = font.render(str(dn["damage"]), True, (255, 255, 255))
+        text_color = (255, 0, 0) if dn["to_player"] else (255, 255, 255)
+        damage_text = font.render(str(dn["damage"]), True, text_color)
         screen.blit(damage_text, (dn["x"], dn["y"]))
         
     # Must be the last two lines

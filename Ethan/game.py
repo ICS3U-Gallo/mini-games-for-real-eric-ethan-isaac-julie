@@ -64,6 +64,8 @@ d_pressed = False
 dodge_speed = 50
 dodge_press_duration = 0.2
 last_dodge_time = 0
+perfect_dodge_time = 0
+dodge_left = None
 
 enemies = [
     {"id": 1, "x": 100, "y": HEIGHT - 150, "width": 50, "height": 50, "speed": 2, "health": 100, "attack_start_time": 0, "looking_left": True},
@@ -101,20 +103,39 @@ def find_closest_enemy(player_x, enemies):
     return look_left, closest_enemy
 
 def dodge():
-    global last_dodge_time
+    global last_dodge_time, dodge_left, perfect_dodge_time
     if time.time() - last_dodge_time < 0.5:
         return
     global player_x, player_y
+    dodge_left = None
     if not a_pressed and not d_pressed:
         if looking_left:
-            player_x += dodge_speed
+            dodge_left = False
         else:
-            player_x -= dodge_speed
+            dodge_left = True
     else:
         if a_pressed:
-            player_x -= dodge_speed
+            dodge_left = True
         if d_pressed:
+            dodge_left = False
+
+    if dodge_left:
+        for enemy_id in enemies_in_flash:
+            for enemy in enemies:
+                if enemy["id"] == enemy_id and enemy["looking_left"]:
+                    perfect_dodge_time = time.time()                   
+    else:
+        for enemy_id in enemies_in_flash:
+            for enemy in enemies:
+                if enemy["id"] == enemy_id and not enemy["looking_left"]:
+                    perfect_dodge_time = time.time()
+
+    if time.time() - perfect_dodge_time > 1:
+        if dodge_left:
+            player_x -= dodge_speed
+        else:
             player_x += dodge_speed
+
     last_dodge_time = time.time()
 
 def move_enemy_forward(enemy, amount):
@@ -174,6 +195,15 @@ while running:
             dodge()
         shift_released = True
 
+    if time.time() - perfect_dodge_time < 1:
+        if dodge_left:
+            player_x -= dodge_speed / 50
+        else:
+            player_x += dodge_speed / 50
+    elif time.time() - perfect_dodge_time < 2:
+        print("Perfect dodge!")
+        print("Random Teleportations happens here")
+    
     if a_pressed:
         looking_left = True
         player_x -= current_speed

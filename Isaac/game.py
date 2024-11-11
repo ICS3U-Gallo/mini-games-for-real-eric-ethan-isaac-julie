@@ -25,9 +25,16 @@ spaceship_speed = 10
 bullet_width = 5 
 bullet_height = 10 
 bullet_color = (225, 0, 0)
-bullet_speed = 10
-bullets = []
-
+bullet_speed = 50
+bullet_speed2 = 15
+bullet_speed3 = 40
+bullets = [] 
+bullets2 = []
+bullets3 = []
+radius3 = 1
+counter3 = 0
+keydowntime = 0
+boost_cooldown = []
 # ---------------------------
 
 running = True
@@ -36,11 +43,21 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        elif event.type == pygame.K_DOWN: 
-            # Create a new bullet 
-            bullet_x = spaceship_x + spaceship_width // 2 - bullet_width // 2 
-            bullet_y = spaceship_y 
-            bullets.append([bullet_x, bullet_y])
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RIGHT:
+                bullet2 = [spaceship_x + 40, spaceship_y - 5]
+                bullets2.append(bullet2)
+            if event.key == pygame.K_LEFT: 
+                bullet = [spaceship_x, spaceship_y - 5]
+                bullets.append(bullet)
+            if event.key == pygame.K_UP:
+                bullet3 = [spaceship_x + 20, spaceship_y - 5]
+                bullets3.append(bullet3)
+            if event.key == pygame.K_DOWN:
+                spaceship_speed = 50          
+        elif event.type == pygame.KEYUP:
+            if event.key == pygame.K_DOWN:
+                spaceship_speed = 10
 
     # GAME STATE UPDATES
         # Get keys pressed
@@ -64,17 +81,30 @@ while running:
     if spaceship_y < 0:
         spaceship_y = 960
     #bullets
-    for bullet in bullets: 
-        bullet[1] -= bullet_speed 
-        if bullet[1] < 0: 
-            bullets.remove(bullet)
+    for i in bullets: 
+        i[1] -= bullet_speed
+    for n in bullets2:
+        n[1] -= bullet_speed2
+    for g in bullets3:
+        g[1] -= bullet_speed3
+        radius3 += 20
+        counter3 += 1
+        if counter3 == 10:
+            radius3 = 1
+            counter3 = 0
+
 
     # All game math and comparisons happen here
 
     # DRAWING
     screen.fill((0, 0, 0))  # always the first drawing command
     pygame.draw.polygon(screen, (255, 255, 255), [(spaceship_x, spaceship_y), (spaceship_x, spaceship_y + spaceship_height), (spaceship_x + spaceship_width, spaceship_y), (spaceship_x + spaceship_width, spaceship_y + spaceship_height)], 0)
-    pygame.draw.polygon(screen, (bullet_color), [(spaceship_width, spaceship_y), (spaceship_x, spaceship_height), (spaceship_x + spaceship_width, spaceship_height)], 0)
+    for i in bullets:
+        pygame.draw.circle(screen, (bullet_color), (i[0], i[1]),3)
+    for n in bullets2:
+        pygame.draw.circle(screen, (0, 0, 255), (n[0], n[1]), 10)
+    for g in bullets3:
+        pygame.draw.circle(screen, (255, 0, 255), (g[0], g[1]), radius3)
 
 
     # Must be the last two lines

@@ -71,6 +71,7 @@ perfect_dodge_enemy = None
 last_teleport_time = 0
 player_angle = 0
 sword_rect = pygame.Rect(0, 0, 0, 0)
+charged = False
 
 enemies = [
     {"id": 1, "x": 100, "y": HEIGHT - 150, "width": 50, "height": 50, "speed": 2, "health": 100, "attack_start_time": 0, "looking_left": True},
@@ -87,8 +88,8 @@ damage_numbers = []
 enemies_in_flash = []
 
 def insert_damage_number(damage, x, y, to_player):
-    offset_x = random.randint(-20, 20)
-    offset_y = random.randint(-20, 20)
+    offset_x = random.randint(-25, 25)
+    offset_y = random.randint(-25, 25)
     damage_numbers.append({"damage": damage, "x": x + offset_x, "y": y + offset_y, "timestamp": time.time(), "to_player": to_player})
 
 def find_closest_enemy(player_x, enemies):
@@ -198,8 +199,8 @@ def draw_player():
     rotated_rect = rotated_player_surface.get_rect(center=center)
     
     screen.blit(rotated_player_surface, rotated_rect.topleft)
-    pygame.draw.circle(screen, (255, 0, 0), (player_x, player_y), 5)
-    pygame.draw.circle(screen, (255, 0, 0), center, 5)
+    # pygame.draw.circle(screen, (255, 0, 0), (player_x, player_y), 5)
+    # pygame.draw.circle(screen, (255, 0, 0), center, 5)
     sword_rect = rotated_rect
     # print(center)
 
@@ -209,16 +210,16 @@ def player_move_to(x, y, pa=0):
     player_y = y
     player_angle = pa
 
-def swing():
+def swing(damage=10):
     global enemy_hit
 
     for enemy in enemies:
         enemy_rect = pygame.Rect(enemy["x"], enemy["y"], enemy["width"], enemy["height"])
         if sword_rect.colliderect(enemy_rect):
-            enemy["health"] -= 10
+            enemy["health"] -= damage
             if enemy["health"] <= 0:
                 enemies.remove(enemy)
-            insert_damage_number(10, enemy["x"], enemy["y"], False)
+            insert_damage_number(damage, enemy["x"], enemy["y"], False)
             enemy_hit = True
 
 
@@ -234,54 +235,65 @@ while running:
             space_released = True
 
     keys = pygame.key.get_pressed()
-    a_pressed = keys[pygame.K_a]
-    d_pressed = keys[pygame.K_d]
+    if time.time() - perfect_dodge_time > 3:
+        a_pressed = keys[pygame.K_a]
+        d_pressed = keys[pygame.K_d]
 
-    if keys[pygame.K_SPACE] and not swinging_sword and space_released:
-        swinging_sword = True
-        swing_start_time = time.time()
-        space_released = False
-        enemy_hit = False
+        if keys[pygame.K_SPACE] and not swinging_sword and space_released:
+            swinging_sword = True
+            swing_start_time = time.time()
+            space_released = False
+            enemy_hit = False
 
-        look_left, closest_enemy = find_closest_enemy(player_x, enemies)
-        if closest_enemy:
-            looking_left = look_left
-            player_move_to(closest_enemy["x"] + 50 if looking_left else closest_enemy["x"] - 50, player_y)
-            # player_move_to(closest_enemy["x"], player_y)
+            look_left, closest_enemy = find_closest_enemy(player_x, enemies)
+            if closest_enemy:
+                looking_left = look_left
+                player_move_to(closest_enemy["x"] + 50 if looking_left else closest_enemy["x"] - 50, player_y)
+                # player_move_to(closest_enemy["x"], player_y)
             
-    elif swinging_sword and time.time() - swing_start_time >= swing_duration:
-        swinging_sword = False
+        elif swinging_sword and time.time() - swing_start_time >= swing_duration:
+            swinging_sword = False
 
-    # if len(enemies_in_flash) > 0:
-    #     dodge()
-
-    if keys[pygame.K_LSHIFT]:
-        if not shift_pressed:
-            if not a_pressed and not d_pressed:
-                dodge()
-            else:
-                shift_start_time = time.time()
-            shift_pressed = True
-            shift_released = False
-        if time.time() - shift_start_time > dodge_press_duration:
-            current_speed = sprint_speed / time_scale
-    else:
-        shift_pressed = False
-        current_speed = move_speed / time_scale
-
-    if not shift_pressed and not shift_released:
-        if time.time() - shift_start_time <= dodge_press_duration:
-            dodge()
-        shift_released = True
-
-    if time.time() - perfect_dodge_time < 1:
-        time_scale = 5
-        if dodge_left:
-            player_move_to(player_x - dodge_speed / 5 / time_scale, player_y)
+        if keys[pygame.K_LSHIFT]:
+            if not shift_pressed:
+                if not a_pressed and not d_pressed:
+                    dodge()
+                else:
+                    shift_start_time = time.time()
+                shift_pressed = True
+                shift_released = False
+            if time.time() - shift_start_time > dodge_press_duration:
+                current_speed = sprint_speed / time_scale
         else:
-            player_move_to(player_x + dodge_speed / 5 / time_scale, player_y)
+            shift_pressed = False
+            current_speed = move_speed / time_scale
+
+        if not shift_pressed and not shift_released:
+            if time.time() - shift_start_time <= dodge_press_duration:
+                dodge()
+            shift_released = True
+
+        if a_pressed:
+            looking_left = True
+            player_move_to(player_x - current_speed, player_y)
+            
+        if d_pressed:
+            looking_left = False
+            player_move_to(player_x + current_speed, player_y)
+
+        if swinging_sword and not enemy_hit:
+            swing()
+
+        if time_scale != 1:
+            time_scale = 1
     else:
-        if time.time() - perfect_dodge_time < 2:
+        if time.time() - perfect_dodge_time < 1:
+            time_scale = 5
+            if dodge_left:
+                player_move_to(player_x - dodge_speed / 5 / time_scale, player_y)
+            else:
+                player_move_to(player_x + dodge_speed / 5 / time_scale, player_y)
+        elif time.time() - perfect_dodge_time < 2:
             if time.time() - last_teleport_time > 0.25:
                 last_teleport_time = time.time()
                 enemy_center_x = perfect_dodge_enemy["x"] + perfect_dodge_enemy["width"] // 2
@@ -294,22 +306,17 @@ while running:
                 player_move_to(player_center_x - player_width // 2, player_center_y - player_height // 2, 270 - random_angle)
                 swinging_sword = True
                 draw_player()
-                swing()
+                swing(5)
         else:
-            if time_scale != 1:
-                player_move_to(perfect_dodge_enemy["x"], HEIGHT - 150)
-                time_scale = 1
-    
-    if a_pressed:
-        looking_left = True
-        player_move_to(player_x - current_speed, player_y)
-        
-    if d_pressed:
-        looking_left = False
-        player_move_to(player_x + current_speed, player_y)
-
-    if swinging_sword and not enemy_hit:
-        swing()
+            if not charged:
+                charged = True
+                player_move_to(perfect_dodge_enemy["x"] - 100, HEIGHT - 150)
+                last_teleport_time = time.time()
+            else:
+                if time.time() - last_teleport_time > 0.5:
+                    player_move_to(player_x + 10, player_y)
+                    if player_x - perfect_dodge_enemy["x"] < 75:
+                        swing(2)
 
     for enemy in enemies:
         if time.time() - enemy["attack_start_time"] > 5 * time_scale and random.randint(0, 300 * time_scale) < enemy["speed"]:
@@ -323,9 +330,10 @@ while running:
         if enemy["time_elapsed"] <= 0.3 * time_scale:
             if enemy["id"] not in enemies_in_flash:
                 enemies_in_flash.append(enemy["id"])
-        elif 0.5 * time_scale <= enemy["time_elapsed"] <= 1 * time_scale:
+        elif 0.3 * time_scale <= enemy["time_elapsed"] <= 0.5 * time_scale:
             if enemy["id"] in enemies_in_flash:
                 enemies_in_flash.remove(enemy["id"])
+        elif 0.5 * time_scale <= enemy["time_elapsed"] <= 1 * time_scale:
             if enemy["looking_left"]:
                 enemy["sword_body_x"] = enemy["x"] - sword_body_width
                 enemy["sword_body_y"] = enemy["y"] + (enemy["height"] // 2) - (sword_body_height // 2)
@@ -409,7 +417,7 @@ while running:
         damage_text = font.render(str(dn["damage"]), True, text_color)
         screen.blit(damage_text, (dn["x"], dn["y"]))
 
-    pygame.draw.rect(screen, (0, 0, 0), sword_rect, 2)
+    # pygame.draw.rect(screen, (0, 0, 0), sword_rect, 2)
         
     # Must be the last two lines
     # of the game loop

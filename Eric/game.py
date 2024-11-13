@@ -4,13 +4,59 @@ import math
 import time
 pygame.init()
 
-WIDTH = 640
-HEIGHT = 480
+WIDTH = 1280
+HEIGHT = 960
 SIZE = (WIDTH, HEIGHT)
-
+WHITE = (255, 255, 255)
+GREEN = (0, 255, 0)
+YELLOW = (255, 255, 0)
+RED = (255, 0, 0)
+BLACK = (0, 0, 0)
 screen = pygame.display.set_mode(SIZE)
 clock = pygame.time.Clock()
+easy_button = pygame.Rect(WIDTH // 4 - 50, HEIGHT // 2 - 25, 100, 50)
+medium_button = pygame.Rect(WIDTH // 2 - 50, HEIGHT // 2 - 25, 100, 50)
+hard_button = pygame.Rect(3 * WIDTH // 4 - 50, HEIGHT // 2 - 25, 100, 50)
 
+difficulty = None
+star_count = 100  # Number of stars
+stars = [{"x": random.randint(0, WIDTH), "y": random.randint(0, HEIGHT), "size": random.randint(1, 3)} for _ in range(star_count)]
+
+
+def draw_buttons():
+    pygame.draw.rect(screen, GREEN, easy_button)
+    pygame.draw.rect(screen, YELLOW, medium_button)
+    pygame.draw.rect(screen, RED, hard_button)
+    font = pygame.font.Font(None, 36)
+    easy_text = font.render("Easy", True, BLACK)
+    medium_text = font.render("Medium", True, BLACK)
+    hard_text = font.render("Hard", True, BLACK)
+    screen.blit(easy_text, (easy_button.x + 20, easy_button.y + 15))
+    screen.blit(medium_text, (medium_button.x-5 + 10, medium_button.y + 15))
+    screen.blit(hard_text, (hard_button.x + 20, hard_button.y + 15))
+
+# Difficulty selection screen
+selecting_difficulty = True
+while selecting_difficulty:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            exit()
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if easy_button.collidepoint(event.pos):
+                difficulty = 'easy'
+                selecting_difficulty = False
+            elif medium_button.collidepoint(event.pos):
+                difficulty = 'medium'
+                selecting_difficulty = False
+            elif hard_button.collidepoint(event.pos):
+                difficulty = 'hard'
+                selecting_difficulty = False
+
+    screen.fill(BLACK)
+    draw_buttons()
+    pygame.display.flip()
+    clock.tick(30)
 # ---------------------------
 # Initialize global variables
 playerx = WIDTH // 2
@@ -141,14 +187,35 @@ while running:
         player_angle -= 10
 
     # SPAWNING LOGIC
-    if random.random() < 0.005:
-        spawn_heal()
-    if random.random() < 0.005:
-        spawn_ammo()
-    if random.random() < 0.05:
-        spawn_asteroid()
-    if random.random() < 0.05:
-        spawn_asteroid2()
+    if difficulty == 'easy':
+        if random.random() < 0.006:
+            spawn_heal()
+        if random.random() < 0.006:
+            spawn_ammo()
+        if random.random() < 0.03:
+            spawn_asteroid()
+        if random.random() < 0.02:
+            spawn_asteroid2()
+    elif difficulty == 'medium':
+        asteroid_speed = 8
+        if random.random() < 0.006:
+            spawn_heal()
+        if random.random() < 0.006:
+            spawn_ammo()
+        if random.random() < 0.04:
+            spawn_asteroid()
+        if random.random() < 0.08:
+            spawn_asteroid2()
+    elif difficulty == 'hard':
+        asteroid_speed = 9
+        if random.random() < 0.005:
+            spawn_heal()
+        if random.random() < 0.005:
+            spawn_ammo()
+        if random.random() < 0.08:
+            spawn_asteroid()
+        if random.random() < 0.1:
+            spawn_asteroid2()
     if playerx > WIDTH:
         playerx = -10
     elif playerx < 0:
@@ -158,11 +225,9 @@ while running:
     elif playery < 0:
         playery = HEIGHT + 10
 
-    # BULLET MOVEMENT
+
     new_bullets = []
-    # Loop through bullets to check for collisions and movement
     for bx, by, angle in bullets:
-        # Move the bullet first
         bx += bullet_speed * math.cos(math.radians(angle))
         by -= bullet_speed * math.sin(math.radians(angle))
 
@@ -235,6 +300,8 @@ while running:
 
     screen.fill((0, 0, 51))
     draw_player()
+    for star in stars:
+        pygame.draw.circle(screen, (255, 255, 255), (star["x"], star["y"]), 2)
     for bx, by, _ in bullets:
         draw_bullet(bx, by)
     for ax, ay, size in asteroids:
@@ -260,6 +327,9 @@ while running:
     clock.tick(30)
 
 while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
     screen.fill((0, 0, 51))
     ENDTEXT = ENDFONT.render("GAME OVER", True, (255, 0, 0))
     screen.blit(ENDTEXT, (10, 40))
@@ -267,5 +337,3 @@ while running:
     screen.blit(ENDTEXT,(10, 200))
     clock.tick(30)
     pygame.display.flip()
-
-

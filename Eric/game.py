@@ -1,7 +1,7 @@
 import pygame
 import random
 import math
-
+import time
 pygame.init()
 
 WIDTH = 640
@@ -29,10 +29,14 @@ asteroids2 = []
 heals = []
 ammos = []
 player_angle = 0  # Initial angle facing up
-
+score = 0
+bonus_size = 0
 # ---------------------------
 pygame.display.set_caption('Space Defender')
 font = pygame.font.Font('freesansbold.ttf', 15)
+fontbonus = pygame.font.Font('freesansbold.ttf', 50)
+ENDFONT = pygame.font.Font('freesansbold.ttf', 100)
+ENDSCORE = pygame.font.Font('freesansbold.ttf', 50)
 running = True
 
 def spawn_asteroid():
@@ -106,10 +110,14 @@ def check_collision(x1, y1, x2, y2, size1, size2):
 def display_text(text, x, y, color=(255, 255, 255)):
     label = font.render(text, True, color)
     screen.blit(label, (x, y))
+def display_bonus(text, x, y, color=(255, bonus_size, bonus_size)):
+    label = fontbonus.render(text, True, color)
+    screen.blit(label, (x, y))
 
 while running:
     # EVENT HANDLING
-    keys = pygame.key.get_pressed()
+    keys = (pygame.key.get_pressed
+            ())
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -117,18 +125,20 @@ while running:
             if event.key == pygame.K_SPACE and ammo > 0:
                 bullets.append((playerx, playery, player_angle))
                 ammo -= 1
-
+    fontbonus = pygame.font.Font('freesansbold.ttf', bonus_size)
     # MOVEMENT
     if keys[pygame.K_a]:
         playerx -= move_speed
-        player_angle = 180
+        player_angle += 10
     if keys[pygame.K_d]:
         playerx += move_speed
+        player_angle -= 10
     if keys[pygame.K_w]:
         playery -= move_speed
-        player_angle = 90
+        player_angle += 10
     if keys[pygame.K_s]:
         playery += move_speed
+        player_angle -= 10
 
     # SPAWNING LOGIC
     if random.random() < 0.005:
@@ -137,7 +147,7 @@ while running:
         spawn_ammo()
     if random.random() < 0.05:
         spawn_asteroid()
-    if random.random() < 0.1:
+    if random.random() < 0.05:
         spawn_asteroid2()
     if playerx > WIDTH:
         playerx = -10
@@ -161,11 +171,17 @@ while running:
             if check_collision(bx, by, ax, ay, 10, size):
                 bullet_hit = True
                 asteroids.remove((ax, ay, size))
+                score += 200
+                if bonus_size<=0:
+                    bonus_size = 50
                 break
         for ax, ay, size in asteroids2:
             if check_collision(bx, by, ax, ay, 10, size):
                 bullet_hit = True
                 asteroids2.remove((ax, ay, size))
+                score += 200
+                if bonus_size <= 0:
+                    bonus_size = 50
                 break
 
         if not bullet_hit:
@@ -233,8 +249,23 @@ while running:
     # HUD
     display_text(f'Health: {health}', 10, 10)
     display_text(f'Ammo: {ammo}', 10, 30)
-
+    display_text(f'Score: {score}', 10, 50)
+    if bonus_size>0:
+        display_bonus('+200', WIDTH/2, HEIGHT/2)
+    bonus_size-=2
+    score+=1
+    if health<=0:
+        break
     pygame.display.flip()
     clock.tick(30)
 
-pygame.quit()
+while running:
+    screen.fill((0, 0, 51))
+    ENDTEXT = ENDFONT.render("GAME OVER", True, (255, 0, 0))
+    screen.blit(ENDTEXT, (10, 40))
+    ENDTEXT = ENDSCORE.render(f"YOUR SCORE: {score}", True, (255, 0, 0))
+    screen.blit(ENDTEXT,(10, 200))
+    clock.tick(30)
+    pygame.display.flip()
+
+

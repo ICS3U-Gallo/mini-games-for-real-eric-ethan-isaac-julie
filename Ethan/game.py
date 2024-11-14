@@ -75,8 +75,8 @@ charged = False
 
 enemies = [
     {"id": 1, "x": 100, "y": HEIGHT - 150, "width": 50, "height": 50, "speed": 2, "health": 100, "attack_start_time": 0, "looking_left": True},
-    # {"id": 2, "x": 300, "y": HEIGHT - 150, "width": 50, "height": 50, "speed": 3, "health": 100, "attack_start_time": 0, "looking_left": False},
-    # {"id": 3, "x": 500, "y": HEIGHT - 150, "width": 50, "height": 50, "speed": 4, "health": 100, "attack_start_time": 0, "looking_left": True},
+    {"id": 2, "x": 300, "y": HEIGHT - 150, "width": 50, "height": 50, "speed": 3, "health": 100, "attack_start_time": 0, "looking_left": False},
+    {"id": 3, "x": 500, "y": HEIGHT - 150, "width": 50, "height": 50, "speed": 4, "health": 100, "attack_start_time": 0, "looking_left": True},
 ]
 
 enemy_hit = False
@@ -209,6 +209,7 @@ def player_move_to(x, y, pa=0):
     player_x = x
     player_y = y
     player_angle = pa
+    print(f"Player: {player_x}, {player_y}")
 
 def swing(damage=10):
     global enemy_hit
@@ -288,6 +289,7 @@ while running:
             time_scale = 1
     else:
         if time.time() - perfect_dodge_time < 1:
+            charged = False
             time_scale = 5
             if dodge_left:
                 player_move_to(player_x - dodge_speed / 5 / time_scale, player_y)
@@ -366,56 +368,60 @@ while running:
     # All game math and comparisons happen here
 
     # DRAWING
-    screen.fill((0, 128, 128))  # always the first drawing command
+    if player_health > 0:
+        screen.fill((0, 128, 128))  # always the first drawing command
 
-    pygame.draw.rect(screen, (210, 180, 140), (0, HEIGHT - 100, WIDTH, 100))
+        pygame.draw.rect(screen, (210, 180, 140), (0, HEIGHT - 100, WIDTH, 100))
 
-    for enemy in enemies:
-        pygame.draw.rect(screen, (0, 255, 0), (enemy["x"], enemy["y"], enemy["width"], enemy["height"]))
-        health_bar_width = enemy["width"] * (enemy["health"] / 100)
-        pygame.draw.rect(screen, (255, 0, 0), (enemy["x"], enemy["y"] - 10, health_bar_width, 5))
- 
-        if enemy["looking_left"]:
-            enemy_left_eye_x = enemy["x"] + enemy_eye_offset_x
-            enemy_right_eye_x = enemy["x"] + enemy_eye_offset_x + 15
-            enemy_eye_y = enemy["y"] + enemy_eye_offset_y
-        else:
-            enemy_left_eye_x = enemy["x"] + enemy["width"] - enemy_eye_offset_x - enemy_eye_width - 15
-            enemy_right_eye_x = enemy["x"] + enemy["width"] - enemy_eye_offset_x - enemy_eye_width
-            enemy_eye_y = enemy["y"] + enemy_eye_offset_y
+        for enemy in enemies:
+            pygame.draw.rect(screen, (0, 255, 0), (enemy["x"], enemy["y"], enemy["width"], enemy["height"]))
+            health_bar_width = enemy["width"] * (enemy["health"] / 100)
+            pygame.draw.rect(screen, (255, 0, 0), (enemy["x"], enemy["y"] - 10, health_bar_width, 5))
+    
+            if enemy["looking_left"]:
+                enemy_left_eye_x = enemy["x"] + enemy_eye_offset_x
+                enemy_right_eye_x = enemy["x"] + enemy_eye_offset_x + 15
+                enemy_eye_y = enemy["y"] + enemy_eye_offset_y
+            else:
+                enemy_left_eye_x = enemy["x"] + enemy["width"] - enemy_eye_offset_x - enemy_eye_width - 15
+                enemy_right_eye_x = enemy["x"] + enemy["width"] - enemy_eye_offset_x - enemy_eye_width
+                enemy_eye_y = enemy["y"] + enemy_eye_offset_y
 
-        pygame.draw.rect(screen, (0, 0, 0), (enemy_left_eye_x, enemy_eye_y, enemy_eye_width, enemy_eye_height))
-        pygame.draw.rect(screen, (0, 0, 0), (enemy_right_eye_x, enemy_eye_y, enemy_eye_width, enemy_eye_height))
+            pygame.draw.rect(screen, (0, 0, 0), (enemy_left_eye_x, enemy_eye_y, enemy_eye_width, enemy_eye_height))
+            pygame.draw.rect(screen, (0, 0, 0), (enemy_right_eye_x, enemy_eye_y, enemy_eye_width, enemy_eye_height))
 
-        if enemy["time_elapsed"] < 1 * time_scale:
-            if enemy["time_elapsed"] <= 0.3 * time_scale:
-                flash_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-                enemy_left_eye_x += enemy_eye_width // 2
-                enemy_eye_y += enemy_eye_height // 2
-                flash_length = 50 * math.sin(10.471975512 / time_scale * enemy["time_elapsed"]) - 0.15
-                print(f"Progress: {enemy['time_elapsed'] / (0.3 * time_scale)}")
-                pygame.draw.line(flash_surface, (255, 0, 0, 200), (enemy_left_eye_x - flash_length, enemy_eye_y + flash_length * flash_slope), (enemy_left_eye_x + flash_length, enemy_eye_y - flash_length * flash_slope), 5)
-                pygame.draw.line(flash_surface, (255, 0, 0, 200), (enemy_left_eye_x - flash_length / 2, enemy_eye_y + flash_length * -1), (enemy_left_eye_x + flash_length / 2, enemy_eye_y - flash_length * -1), 5)
-                screen.blit(flash_surface, (0, 0))
-            elif enemy["time_elapsed"] >= 0.5 * time_scale:
-                pygame.draw.rect(screen, (192, 192, 192), (enemy["sword_body_x"], enemy["sword_body_y"], enemy_sword_body_width, enemy_sword_body_height))
-                pygame.draw.polygon(screen, (192, 192, 192), [enemy["sword_tip"], enemy["sword_base1"], enemy["sword_base2"]])
+            if enemy["time_elapsed"] < 1 * time_scale:
+                if enemy["time_elapsed"] <= 0.3 * time_scale:
+                    flash_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+                    enemy_left_eye_x += enemy_eye_width // 2
+                    enemy_eye_y += enemy_eye_height // 2
+                    flash_length = 50 * math.sin(10.471975512 / time_scale * enemy["time_elapsed"]) - 0.15
+                    print(f"Progress: {enemy['time_elapsed'] / (0.3 * time_scale)}")
+                    pygame.draw.line(flash_surface, (255, 0, 0, 200), (enemy_left_eye_x - flash_length, enemy_eye_y + flash_length * flash_slope), (enemy_left_eye_x + flash_length, enemy_eye_y - flash_length * flash_slope), 5)
+                    pygame.draw.line(flash_surface, (255, 0, 0, 200), (enemy_left_eye_x - flash_length / 2, enemy_eye_y + flash_length * -1), (enemy_left_eye_x + flash_length / 2, enemy_eye_y - flash_length * -1), 5)
+                    screen.blit(flash_surface, (0, 0))
+                elif enemy["time_elapsed"] >= 0.5 * time_scale:
+                    pygame.draw.rect(screen, (192, 192, 192), (enemy["sword_body_x"], enemy["sword_body_y"], enemy_sword_body_width, enemy_sword_body_height))
+                    pygame.draw.polygon(screen, (192, 192, 192), [enemy["sword_tip"], enemy["sword_base1"], enemy["sword_base2"]])
 
-    # pygame.draw.rect(screen, (0, 0, 255), (player_x, player_y, player_width, player_height))
-    health_bar_width = player_width * player_health / 100
-    pygame.draw.rect(screen, (255, 0, 0), (player_x, player_y - 10, health_bar_width, 5))
+        # pygame.draw.rect(screen, (0, 0, 255), (player_x, player_y, player_width, player_height))
+        health_bar_width = player_width * player_health / 100
+        pygame.draw.rect(screen, (255, 0, 0), (player_x, player_y - 10, health_bar_width, 5))
 
-    draw_player()
+        draw_player()
 
-    # if swinging_sword:
-    #     pygame.draw.rect(screen, (192, 192, 192), (sword_body_x, sword_body_y, sword_body_width, sword_body_height))
-    #     pygame.draw.polygon(screen, (192, 192, 192), [sword_tip, sword_base1, sword_base2])
+        # if swinging_sword:
+        #     pygame.draw.rect(screen, (192, 192, 192), (sword_body_x, sword_body_y, sword_body_width, sword_body_height))
+        #     pygame.draw.polygon(screen, (192, 192, 192), [sword_tip, sword_base1, sword_base2])
 
-    damage_numbers = [dn for dn in damage_numbers if time.time() - dn["timestamp"] < 1 * time_scale]
-    for dn in damage_numbers:
-        text_color = (255, 0, 0) if dn["to_player"] else (255, 255, 255)
-        damage_text = font.render(str(dn["damage"]), True, text_color)
-        screen.blit(damage_text, (dn["x"], dn["y"]))
+        damage_numbers = [dn for dn in damage_numbers if time.time() - dn["timestamp"] < 1 * time_scale]
+        for dn in damage_numbers:
+            text_color = (255, 0, 0) if dn["to_player"] else (255, 255, 255)
+            damage_text = font.render(str(dn["damage"]), True, text_color)
+            screen.blit(damage_text, (dn["x"], dn["y"]))
+    else:
+        game_over_text = font.render("Game Over", True, (255, 0, 0))
+        screen.blit(game_over_text, (WIDTH // 2 - 50, HEIGHT // 2 - 50))
 
     # pygame.draw.rect(screen, (0, 0, 0), sword_rect, 2)
         

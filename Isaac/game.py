@@ -13,7 +13,9 @@ clock = pygame.time.Clock()
 
 # Initialize global variables
 
+placeholder = 0
 game_state = "start_menu"
+
 
 spaceship_width = 10
 spaceship_height = 15
@@ -29,13 +31,15 @@ bullet_speed3 = 40
 bullets = [] 
 bullets2 = []
 bullets3 = []
+
+
 radius3 = 0.5
 counter3 = 0
 spaceship_angle = 0 
 rotation_speed = 2.5
 # enemies
-enemy_width = 40
-enemy_height = 30
+enemy_width = random.randrange(10, 40)
+enemy_height = random.randrange(10, 40)
 enemy_color = (0, 0, 255)
 enemy_bullet_color = (255, 0, 0)
 enemy_speed = 2 
@@ -43,28 +47,17 @@ enemy_bullet_speed = 10
 enemy_bullets = []
 enemies = []
 enemy_num = 0
+enemy_health = 20
+width_enemy_health = enemy_width
+
+dmg_bullet1 = width_enemy_health / enemy_health
+dmg_bullet2 = (width_enemy_health / enemy_health) * 4
+dmg_bullet3 = (width_enemy_health / enemy_health) * 7.5
+
 player_health = 5
 health_width = 10
 
-def draw_start_menu():
-   screen.fill((0, 0, 0))
-   font = pygame.font.SysFont('arial', 40)
-   title = font.render('My Game', True, (255, 255, 255))
-   start_button = font.render('Start', True, (255, 255, 255))
-   screen.blit(title, (WIDTH/2 - title.get_width()/2, HEIGHT/2 - title.get_height()/2))
-   screen.blit(start_button, (WIDTH/2 - start_button.get_width()/2, HEIGHT/2 + start_button.get_height()/2))
-   pygame.display.update()
 
-def draw_game_over_screen():
-   screen.fill((0, 0, 0))
-   font = pygame.font.SysFont('arial', 40)
-   title = font.render('Game Over', True, (255, 255, 255))
-   restart_button = font.render('R - Restart', True, (255, 255, 255))
-   quit_button = font.render('Q - Quit', True, (255, 255, 255))
-   screen.blit(title, (WIDTH/2 - title.get_width()/2, HEIGHT/2 - title.get_height()/3))
-   screen.blit(restart_button, (WIDTH/2 - restart_button.get_width()/2, HEIGHT/1.9 + restart_button.get_height()))
-   screen.blit(quit_button, (WIDTH/2 - quit_button.get_width()/2, HEIGHT/2 + quit_button.get_height()/2))
-   pygame.display.update()
 
 # Function to get random direction
 def get_random_direction():
@@ -80,6 +73,7 @@ while enemy_num != 15:
     enemies.append([enemy_x, enemy_y, direction[0], direction[1], enemy_hp])
     enemy_num += 1
 
+
 # Bullet class for handling bullet movement
 class Bullet:
     def __init__(self, x, y, angle, speed, radius=0):
@@ -93,11 +87,11 @@ class Bullet:
         self.x += self.speed * math.cos(self.angle)
         self.y += self.speed * math.sin(self.angle)
 
-# Main game loop
 running = True
+# Main game loop
 while running:
     if game_state == "game over":
-        running = False
+        pygame.quit()
     # EVENT HANDLING
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -130,6 +124,7 @@ while running:
 
     # GAME STATE UPDATES
     keys = pygame.key.get_pressed()
+
 
     # Move spaceship
     if keys[pygame.K_w]: 
@@ -204,9 +199,30 @@ while running:
             if (bullet.x < enemy[0] + enemy_width and bullet.x > enemy[0] and
                 bullet.y < enemy[1] + enemy_height and bullet.y > enemy[1]):
                 # Decrease enemy HP
-                enemy[4] -= 1  # Decrease HP by 1
+                enemy_health -= 1  
+                width_enemy_health -= dmg_bullet1
                 bullets.remove(bullet)  # Remove the bullet upon collision
-                if enemy[4] <= 0:  # If enemy HP is 0 or below, remove the enemy
+                if width_enemy_health <= 0:  # If enemy HP is 0 or below, remove the enemy
+                    enemies.remove(enemy)
+    for bullet2 in bullets2[:]:
+        for enemy in enemies[:]:
+            if (bullet.x < enemy[0] + enemy_width and bullet.x > enemy[0] and
+                bullet.y < enemy[1] + enemy_height and bullet.y > enemy[1]):
+                # Decrease enemy HP
+                enemy_health -= 4
+                width_enemy_health -= dmg_bullet2
+                bullets2.remove(bullet2)  # Remove the bullet upon collision
+                if enemy_health <= 0:  # If enemy HP is 0 or below, remove the enemy
+                    enemies.remove(enemy)
+    for bullet3 in bullets3[:]:
+        for enemy in enemies[:]:
+            if (bullet.x < enemy[0] + enemy_width and bullet.x > enemy[0] and
+                bullet.y < enemy[1] + enemy_height and bullet.y > enemy[1]):
+                # Decrease enemy HP
+                enemy_health -= 7.5
+                width_enemy_health -= dmg_bullet3
+                bullets3.remove(bullet3)  # Remove the bullet upon collision
+                if enemy_health <= 0:  # If enemy HP is 0 or below, remove the enemy
                     enemies.remove(enemy)
 
     # Update enemy bullet positions
@@ -245,12 +261,18 @@ while running:
         pygame.draw.circle(screen, bullet_color, (bullet.x, bullet.y), 3)
     for bullet in bullets2:
         pygame.draw.circle(screen, (0, 0, 255), (bullet.x, bullet.y), 10)
+        pygame.draw.rect(screen, (3, 37, 126), (bullet.x - 6, bullet.y - 6, 12, 12), 1)
+        pygame.draw.line(screen, (3, 37, 126), (bullet.x + 12, bullet.y + 12), (bullet.x - 12, bullet.y - 12), 3)
+        pygame.draw.line(screen, (3, 37, 126), (bullet.x, bullet.y + 12), (bullet.x + 12, bullet.y), 3)
+
     for bullet in bullets3:
         pygame.draw.circle(screen, (255, 0, 255), (bullet.x, bullet.y), radius3)
+        
 
     # Draw enemies
     for enemy in enemies:
         pygame.draw.rect(screen, enemy_color, (enemy[0], enemy[1], enemy_width, enemy_height))
+        pygame.draw.rect(screen, (255, 0, 0), (enemy[0], enemy[1] - 10, width_enemy_health, 5))
 
     # Draw enemy bullets
     for enemy_bullet in enemy_bullets:

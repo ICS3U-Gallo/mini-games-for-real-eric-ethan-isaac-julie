@@ -75,8 +75,8 @@ charged = False
 
 enemies = [
     {"id": 1, "x": 100, "y": HEIGHT - 150, "width": 50, "height": 50, "speed": 2, "health": 100, "attack_start_time": 0, "looking_left": True},
-    # {"id": 2, "x": 300, "y": HEIGHT - 150, "width": 50, "height": 50, "speed": 3, "health": 100, "attack_start_time": 0, "looking_left": False},
-    # {"id": 3, "x": 500, "y": HEIGHT - 150, "width": 50, "height": 50, "speed": 4, "health": 100, "attack_start_time": 0, "looking_left": True},
+    {"id": 2, "x": 300, "y": HEIGHT - 150, "width": 50, "height": 50, "speed": 3, "health": 100, "attack_start_time": 0, "looking_left": False},
+    {"id": 3, "x": 500, "y": HEIGHT - 150, "width": 50, "height": 50, "speed": 4, "health": 100, "attack_start_time": 0, "looking_left": True},
 ]
 
 enemy_hit = False
@@ -209,6 +209,7 @@ def player_move_to(x, y, pa=0):
     player_x = x
     player_y = y
     player_angle = pa
+    print(f"Player: {player_x}, {player_y}")
 
 def swing(damage=10):
     global enemy_hit
@@ -234,129 +235,131 @@ while running:
         elif event.type == pygame.KEYUP and event.key == pygame.K_SPACE:
             space_released = True
 
-    keys = pygame.key.get_pressed()
-    if time.time() - perfect_dodge_time > 3:
-        a_pressed = keys[pygame.K_a]
-        d_pressed = keys[pygame.K_d]
+    if player_health > 0:
+        keys = pygame.key.get_pressed()
+        if time.time() - perfect_dodge_time > 3:
+            a_pressed = keys[pygame.K_a]
+            d_pressed = keys[pygame.K_d]
 
-        if keys[pygame.K_SPACE] and not swinging_sword and space_released:
-            swinging_sword = True
-            swing_start_time = time.time()
-            space_released = False
-            enemy_hit = False
-
-            look_left, closest_enemy = find_closest_enemy(player_x, enemies)
-            if closest_enemy:
-                looking_left = look_left
-                player_move_to(closest_enemy["x"] + 50 if looking_left else closest_enemy["x"] - 50, player_y)
-                # player_move_to(closest_enemy["x"], player_y)
-            
-        elif swinging_sword and time.time() - swing_start_time >= swing_duration:
-            swinging_sword = False
-
-        if keys[pygame.K_LSHIFT]:
-            if not shift_pressed:
-                if not a_pressed and not d_pressed:
-                    dodge()
-                else:
-                    shift_start_time = time.time()
-                shift_pressed = True
-                shift_released = False
-            if time.time() - shift_start_time > dodge_press_duration:
-                current_speed = sprint_speed / time_scale
-        else:
-            shift_pressed = False
-            current_speed = move_speed / time_scale
-
-        if not shift_pressed and not shift_released:
-            if time.time() - shift_start_time <= dodge_press_duration:
-                dodge()
-            shift_released = True
-
-        if a_pressed:
-            looking_left = True
-            player_move_to(player_x - current_speed, player_y)
-            
-        if d_pressed:
-            looking_left = False
-            player_move_to(player_x + current_speed, player_y)
-
-        if swinging_sword and not enemy_hit:
-            swing()
-
-        if time_scale != 1:
-            time_scale = 1
-    else:
-        if time.time() - perfect_dodge_time < 1:
-            time_scale = 5
-            if dodge_left:
-                player_move_to(player_x - dodge_speed / 5 / time_scale, player_y)
-            else:
-                player_move_to(player_x + dodge_speed / 5 / time_scale, player_y)
-        elif time.time() - perfect_dodge_time < 2:
-            if time.time() - last_teleport_time > 0.25:
-                last_teleport_time = time.time()
-                enemy_center_x = perfect_dodge_enemy["x"] + perfect_dodge_enemy["width"] // 2
-                enemy_center_y = perfect_dodge_enemy["y"] + perfect_dodge_enemy["height"] // 2
-                random_angle = random.randint(-90, 0)
-                player_center_x = math.sin(random_angle * math.pi / 180) * 60 + enemy_center_x
-                player_center_y = -math.cos(random_angle * math.pi / 180) * 60 + enemy_center_y
-
-                looking_left = random_angle > 0
-                player_move_to(player_center_x - player_width // 2, player_center_y - player_height // 2, 270 - random_angle)
+            if keys[pygame.K_SPACE] and not swinging_sword and space_released:
                 swinging_sword = True
-                draw_player()
-                swing(5)
+                swing_start_time = time.time()
+                space_released = False
+                enemy_hit = False
+
+                look_left, closest_enemy = find_closest_enemy(player_x, enemies)
+                if closest_enemy:
+                    looking_left = look_left
+                    player_move_to(closest_enemy["x"] + 50 if looking_left else closest_enemy["x"] - 50, player_y)
+                    # player_move_to(closest_enemy["x"], player_y)
+                
+            elif swinging_sword and time.time() - swing_start_time >= swing_duration:
+                swinging_sword = False
+
+            if keys[pygame.K_LSHIFT]:
+                if not shift_pressed:
+                    if not a_pressed and not d_pressed:
+                        dodge()
+                    else:
+                        shift_start_time = time.time()
+                    shift_pressed = True
+                    shift_released = False
+                if time.time() - shift_start_time > dodge_press_duration:
+                    current_speed = sprint_speed / time_scale
+            else:
+                shift_pressed = False
+                current_speed = move_speed / time_scale
+
+            if not shift_pressed and not shift_released:
+                if time.time() - shift_start_time <= dodge_press_duration:
+                    dodge()
+                shift_released = True
+
+            if a_pressed:
+                looking_left = True
+                player_move_to(player_x - current_speed, player_y)
+                
+            if d_pressed:
+                looking_left = False
+                player_move_to(player_x + current_speed, player_y)
+
+            if swinging_sword and not enemy_hit:
+                swing()
+
+            if time_scale != 1:
+                time_scale = 1
         else:
-            if not charged:
-                charged = True
-                player_move_to(perfect_dodge_enemy["x"] - 100, HEIGHT - 150)
-                last_teleport_time = time.time()
-            else:
-                if time.time() - last_teleport_time > 0.5:
-                    player_move_to(player_x + 10, player_y)
-                    if player_x - perfect_dodge_enemy["x"] < 75:
-                        swing(2)
+            if time.time() - perfect_dodge_time < 1:
+                charged = False
+                time_scale = 5
+                if dodge_left:
+                    player_move_to(player_x - dodge_speed / 5 / time_scale, player_y)
+                else:
+                    player_move_to(player_x + dodge_speed / 5 / time_scale, player_y)
+            elif time.time() - perfect_dodge_time < 2:
+                if time.time() - last_teleport_time > 0.25:
+                    last_teleport_time = time.time()
+                    enemy_center_x = perfect_dodge_enemy["x"] + perfect_dodge_enemy["width"] // 2
+                    enemy_center_y = perfect_dodge_enemy["y"] + perfect_dodge_enemy["height"] // 2
+                    random_angle = random.randint(-90, 0)
+                    player_center_x = math.sin(random_angle * math.pi / 180) * 60 + enemy_center_x
+                    player_center_y = -math.cos(random_angle * math.pi / 180) * 60 + enemy_center_y
 
-    for enemy in enemies:
-        if time.time() - enemy["attack_start_time"] > 5 * time_scale and random.randint(0, 300 * time_scale) < enemy["speed"]:
-            if enemy["x"] < player_x:
-                enemy["looking_left"] = False
+                    looking_left = random_angle > 0
+                    player_move_to(player_center_x - player_width // 2, player_center_y - player_height // 2, 270 - random_angle)
+                    swinging_sword = True
+                    draw_player()
+                    swing(5)
             else:
-                enemy["looking_left"] = True
-            enemy["attack_start_time"] = time.time()
+                if not charged:
+                    charged = True
+                    player_move_to(perfect_dodge_enemy["x"] - 100, HEIGHT - 150)
+                    last_teleport_time = time.time()
+                else:
+                    if time.time() - last_teleport_time > 0.5:
+                        player_move_to(player_x + 10, player_y)
+                        if player_x - perfect_dodge_enemy["x"] < 75:
+                            swing(2)
 
-        enemy["time_elapsed"] = time.time() - enemy["attack_start_time"]
-        if enemy["time_elapsed"] <= 0.3 * time_scale:
-            if enemy["id"] not in enemies_in_flash:
-                enemies_in_flash.append(enemy["id"])
-        elif 0.3 * time_scale <= enemy["time_elapsed"] <= 0.5 * time_scale:
-            if enemy["id"] in enemies_in_flash:
-                enemies_in_flash.remove(enemy["id"])
-        elif 0.5 * time_scale <= enemy["time_elapsed"] <= 1 * time_scale:
-            if enemy["looking_left"]:
-                enemy["sword_body_x"] = enemy["x"] - sword_body_width
-                enemy["sword_body_y"] = enemy["y"] + (enemy["height"] // 2) - (sword_body_height // 2)
-                enemy["sword_tip"] = (enemy["x"] - sword_tip_width, enemy["y"] + enemy["height"] // 2)
-                enemy["sword_base1"] = (enemy["x"] - sword_body_width, enemy["y"] + enemy["height"] // 2 - sword_tip_height // 2)
-                enemy["sword_base2"] = (enemy["x"] - sword_body_width, enemy["y"] + enemy["height"] // 2 + sword_tip_height // 2)
+        for enemy in enemies:
+            if time.time() - enemy["attack_start_time"] > 5 * time_scale and random.randint(0, 300 * time_scale) < enemy["speed"]:
+                if enemy["x"] < player_x:
+                    enemy["looking_left"] = False
+                else:
+                    enemy["looking_left"] = True
+                enemy["attack_start_time"] = time.time()
+
+            enemy["time_elapsed"] = time.time() - enemy["attack_start_time"]
+            if enemy["time_elapsed"] <= 0.3 * time_scale:
+                if enemy["id"] not in enemies_in_flash:
+                    enemies_in_flash.append(enemy["id"])
+            elif 0.3 * time_scale <= enemy["time_elapsed"] <= 0.5 * time_scale:
+                if enemy["id"] in enemies_in_flash:
+                    enemies_in_flash.remove(enemy["id"])
+            elif 0.5 * time_scale <= enemy["time_elapsed"] <= 1 * time_scale:
+                if enemy["looking_left"]:
+                    enemy["sword_body_x"] = enemy["x"] - sword_body_width
+                    enemy["sword_body_y"] = enemy["y"] + (enemy["height"] // 2) - (sword_body_height // 2)
+                    enemy["sword_tip"] = (enemy["x"] - sword_tip_width, enemy["y"] + enemy["height"] // 2)
+                    enemy["sword_base1"] = (enemy["x"] - sword_body_width, enemy["y"] + enemy["height"] // 2 - sword_tip_height // 2)
+                    enemy["sword_base2"] = (enemy["x"] - sword_body_width, enemy["y"] + enemy["height"] // 2 + sword_tip_height // 2)
+                else:
+                    enemy["sword_body_x"] = enemy["x"] + enemy["width"]
+                    enemy["sword_body_y"] = enemy["y"] + (enemy["height"] // 2) - (sword_body_height // 2)
+                    enemy["sword_tip"] = (enemy["x"] + enemy["width"] + sword_tip_width, enemy["y"] + enemy["height"] // 2)
+                    enemy["sword_base1"] = (enemy["x"] + enemy["width"] + sword_body_width, enemy["y"] + enemy["height"] // 2 - sword_tip_height // 2)
+                    enemy["sword_base2"] = (enemy["x"] + enemy["width"] + sword_body_width, enemy["y"] + enemy["height"] // 2 + sword_tip_height // 2)
+
+                if 0.5 * time_scale <= enemy["time_elapsed"] <= 0.6 * time_scale:
+                    if abs(player_x - enemy["x"]) > 50:
+                        move_enemy_forward(enemy, enemy["speed"])
+                    enemy_sword_rect = pygame.Rect(enemy["sword_body_x"], enemy["sword_body_y"], enemy_sword_body_width, enemy_sword_body_height)
+                    if not enemy["hit_player"] and enemy_sword_rect.colliderect(pygame.Rect(player_x, player_y, player_width, player_height)):
+                        enemy["hit_player"] = True
+                        player_health -= 10
+                        insert_damage_number(10, player_x, player_y, True)
             else:
-                enemy["sword_body_x"] = enemy["x"] + enemy["width"]
-                enemy["sword_body_y"] = enemy["y"] + (enemy["height"] // 2) - (sword_body_height // 2)
-                enemy["sword_tip"] = (enemy["x"] + enemy["width"] + sword_tip_width, enemy["y"] + enemy["height"] // 2)
-                enemy["sword_base1"] = (enemy["x"] + enemy["width"] + sword_body_width, enemy["y"] + enemy["height"] // 2 - sword_tip_height // 2)
-                enemy["sword_base2"] = (enemy["x"] + enemy["width"] + sword_body_width, enemy["y"] + enemy["height"] // 2 + sword_tip_height // 2)
-
-            if 0.5 * time_scale <= enemy["time_elapsed"] <= 0.6 * time_scale:
-                if abs(player_x - enemy["x"]) > 50:
-                    move_enemy_forward(enemy, enemy["speed"])
-                enemy_sword_rect = pygame.Rect(enemy["sword_body_x"], enemy["sword_body_y"], enemy_sword_body_width, enemy_sword_body_height)
-                if not enemy["hit_player"] and enemy_sword_rect.colliderect(pygame.Rect(player_x, player_y, player_width, player_height)):
-                    enemy["hit_player"] = True
-                    player_health -= 10
-                    insert_damage_number(10, player_x, player_y, True)
-        else:
-            enemy["hit_player"] = False
+                enemy["hit_player"] = False
 
     # print(f"{player_x}, {player_y}")
     # # print(pygame.mouse.get_pos())
@@ -366,56 +369,62 @@ while running:
     # All game math and comparisons happen here
 
     # DRAWING
-    screen.fill((0, 128, 128))  # always the first drawing command
+    game_surface = pygame.Surface((WIDTH, HEIGHT))
 
-    pygame.draw.rect(screen, (210, 180, 140), (0, HEIGHT - 100, WIDTH, 100))
+    if player_health > 0:
+        screen.fill((0, 128, 128))  # always the first drawing command
 
-    for enemy in enemies:
-        pygame.draw.rect(screen, (0, 255, 0), (enemy["x"], enemy["y"], enemy["width"], enemy["height"]))
-        health_bar_width = enemy["width"] * (enemy["health"] / 100)
-        pygame.draw.rect(screen, (255, 0, 0), (enemy["x"], enemy["y"] - 10, health_bar_width, 5))
- 
-        if enemy["looking_left"]:
-            enemy_left_eye_x = enemy["x"] + enemy_eye_offset_x
-            enemy_right_eye_x = enemy["x"] + enemy_eye_offset_x + 15
-            enemy_eye_y = enemy["y"] + enemy_eye_offset_y
-        else:
-            enemy_left_eye_x = enemy["x"] + enemy["width"] - enemy_eye_offset_x - enemy_eye_width - 15
-            enemy_right_eye_x = enemy["x"] + enemy["width"] - enemy_eye_offset_x - enemy_eye_width
-            enemy_eye_y = enemy["y"] + enemy_eye_offset_y
+        pygame.draw.rect(screen, (210, 180, 140), (0, HEIGHT - 100, WIDTH, 100))
 
-        pygame.draw.rect(screen, (0, 0, 0), (enemy_left_eye_x, enemy_eye_y, enemy_eye_width, enemy_eye_height))
-        pygame.draw.rect(screen, (0, 0, 0), (enemy_right_eye_x, enemy_eye_y, enemy_eye_width, enemy_eye_height))
+        for enemy in enemies:
+            pygame.draw.rect(screen, (0, 255, 0), (enemy["x"], enemy["y"], enemy["width"], enemy["height"]))
+            health_bar_width = enemy["width"] * (enemy["health"] / 100)
+            pygame.draw.rect(screen, (255, 0, 0), (enemy["x"], enemy["y"] - 10, health_bar_width, 5))
+    
+            if enemy["looking_left"]:
+                enemy_left_eye_x = enemy["x"] + enemy_eye_offset_x
+                enemy_right_eye_x = enemy["x"] + enemy_eye_offset_x + 15
+                enemy_eye_y = enemy["y"] + enemy_eye_offset_y
+            else:
+                enemy_left_eye_x = enemy["x"] + enemy["width"] - enemy_eye_offset_x - enemy_eye_width - 15
+                enemy_right_eye_x = enemy["x"] + enemy["width"] - enemy_eye_offset_x - enemy_eye_width
+                enemy_eye_y = enemy["y"] + enemy_eye_offset_y
 
-        if enemy["time_elapsed"] < 1 * time_scale:
-            if enemy["time_elapsed"] <= 0.3 * time_scale:
-                flash_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-                enemy_left_eye_x += enemy_eye_width // 2
-                enemy_eye_y += enemy_eye_height // 2
-                flash_length = 50 * math.sin(10.471975512 / time_scale * enemy["time_elapsed"]) - 0.15
-                print(f"Progress: {enemy['time_elapsed'] / (0.3 * time_scale)}")
-                pygame.draw.line(flash_surface, (255, 0, 0, 200), (enemy_left_eye_x - flash_length, enemy_eye_y + flash_length * flash_slope), (enemy_left_eye_x + flash_length, enemy_eye_y - flash_length * flash_slope), 5)
-                pygame.draw.line(flash_surface, (255, 0, 0, 200), (enemy_left_eye_x - flash_length / 2, enemy_eye_y + flash_length * -1), (enemy_left_eye_x + flash_length / 2, enemy_eye_y - flash_length * -1), 5)
-                screen.blit(flash_surface, (0, 0))
-            elif enemy["time_elapsed"] >= 0.5 * time_scale:
-                pygame.draw.rect(screen, (192, 192, 192), (enemy["sword_body_x"], enemy["sword_body_y"], enemy_sword_body_width, enemy_sword_body_height))
-                pygame.draw.polygon(screen, (192, 192, 192), [enemy["sword_tip"], enemy["sword_base1"], enemy["sword_base2"]])
+            pygame.draw.rect(screen, (0, 0, 0), (enemy_left_eye_x, enemy_eye_y, enemy_eye_width, enemy_eye_height))
+            pygame.draw.rect(screen, (0, 0, 0), (enemy_right_eye_x, enemy_eye_y, enemy_eye_width, enemy_eye_height))
 
-    # pygame.draw.rect(screen, (0, 0, 255), (player_x, player_y, player_width, player_height))
-    health_bar_width = player_width * player_health / 100
-    pygame.draw.rect(screen, (255, 0, 0), (player_x, player_y - 10, health_bar_width, 5))
+            if enemy["time_elapsed"] < 1 * time_scale:
+                if time_scale == 1 and enemy["time_elapsed"] <= 0.3 * time_scale:
+                    flash_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+                    enemy_left_eye_x += enemy_eye_width // 2
+                    enemy_eye_y += enemy_eye_height // 2
+                    flash_length = 50 * math.sin(10.471975512 / time_scale * enemy["time_elapsed"]) - 0.15
+                    print(f"Progress: {enemy['time_elapsed'] / (0.3 * time_scale)}")
+                    pygame.draw.line(flash_surface, (255, 0, 0, 200), (enemy_left_eye_x - flash_length, enemy_eye_y + flash_length * flash_slope), (enemy_left_eye_x + flash_length, enemy_eye_y - flash_length * flash_slope), 5)
+                    pygame.draw.line(flash_surface, (255, 0, 0, 200), (enemy_left_eye_x - flash_length / 2, enemy_eye_y + flash_length * -1), (enemy_left_eye_x + flash_length / 2, enemy_eye_y - flash_length * -1), 5)
+                    screen.blit(flash_surface, (0, 0))
+                elif enemy["time_elapsed"] >= 0.5 * time_scale:
+                    pygame.draw.rect(screen, (192, 192, 192), (enemy["sword_body_x"], enemy["sword_body_y"], enemy_sword_body_width, enemy_sword_body_height))
+                    pygame.draw.polygon(screen, (192, 192, 192), [enemy["sword_tip"], enemy["sword_base1"], enemy["sword_base2"]])
 
-    draw_player()
+        # pygame.draw.rect(screen, (0, 0, 255), (player_x, player_y, player_width, player_height))
+        health_bar_width = player_width * player_health / 100
+        pygame.draw.rect(screen, (255, 0, 0), (player_x, player_y - 10, health_bar_width, 5))
 
-    # if swinging_sword:
-    #     pygame.draw.rect(screen, (192, 192, 192), (sword_body_x, sword_body_y, sword_body_width, sword_body_height))
-    #     pygame.draw.polygon(screen, (192, 192, 192), [sword_tip, sword_base1, sword_base2])
+        draw_player()
 
-    damage_numbers = [dn for dn in damage_numbers if time.time() - dn["timestamp"] < 1 * time_scale]
-    for dn in damage_numbers:
-        text_color = (255, 0, 0) if dn["to_player"] else (255, 255, 255)
-        damage_text = font.render(str(dn["damage"]), True, text_color)
-        screen.blit(damage_text, (dn["x"], dn["y"]))
+        # if swinging_sword:
+        #     pygame.draw.rect(screen, (192, 192, 192), (sword_body_x, sword_body_y, sword_body_width, sword_body_height))
+        #     pygame.draw.polygon(screen, (192, 192, 192), [sword_tip, sword_base1, sword_base2])
+
+        damage_numbers = [dn for dn in damage_numbers if time.time() - dn["timestamp"] < 1 * time_scale]
+        for dn in damage_numbers:
+            text_color = (255, 0, 0) if dn["to_player"] else (255, 255, 255)
+            damage_text = font.render(str(dn["damage"]), True, text_color)
+            screen.blit(damage_text, (dn["x"], dn["y"]))
+    else:
+        game_over_text = font.render("Game Over", True, (255, 0, 0))
+        screen.blit(game_over_text, (WIDTH // 2 - 50, HEIGHT // 2 - 50))
 
     # pygame.draw.rect(screen, (0, 0, 0), sword_rect, 2)
         

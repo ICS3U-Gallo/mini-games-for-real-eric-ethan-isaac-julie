@@ -1,11 +1,10 @@
 import pygame
 import random
 import math
-import time
 pygame.init()
 
-WIDTH = 1280
-HEIGHT = 960
+WIDTH = 1100
+HEIGHT = 750
 SIZE = (WIDTH, HEIGHT)
 WHITE = (255, 255, 255)
 GREEN = (0, 255, 0)
@@ -19,7 +18,7 @@ medium_button = pygame.Rect(WIDTH // 2 - 50, HEIGHT // 2 - 25, 100, 50)
 hard_button = pygame.Rect(3 * WIDTH // 4 - 50, HEIGHT // 2 - 25, 100, 50)
 
 difficulty = None
-star_count = 100  # Number of stars
+star_count = 100
 stars = [{"x": random.randint(0, WIDTH), "y": random.randint(0, HEIGHT), "size": random.randint(1, 3)} for _ in range(star_count)]
 
 
@@ -74,6 +73,8 @@ asteroids = []
 asteroids2 = []
 heals = []
 ammos = []
+superpowers = []
+supercounter = 0
 player_angle = 0  # Initial angle facing up
 score = 0
 bonus_size = 0
@@ -84,7 +85,10 @@ fontbonus = pygame.font.Font('freesansbold.ttf', 50)
 ENDFONT = pygame.font.Font('freesansbold.ttf', 100)
 ENDSCORE = pygame.font.Font('freesansbold.ttf', 50)
 running = True
-
+def spawn_superpower():
+    x = random.randint(0, WIDTH)
+    y = -20
+    superpowers.append((x, y))
 def spawn_asteroid():
     x = random.randint(0, WIDTH)
     y = -20
@@ -95,7 +99,6 @@ def spawn_asteroid2():
     y = random.randint(0, HEIGHT)
     size = random.randint(20, 40)
     asteroids2.append((x, y, size))
-
 def draw_asteroid(x, y, size):
     points = [(x + math.cos(math.radians(angle)) * size, y + math.sin(math.radians(angle)) * size)
               for angle in range(0, 360, 60)]
@@ -126,8 +129,10 @@ def drawheal(x, y):
                                               (x + 5, y + 10), (x - 5, y + 10),
                                               (x - 5, y), (x - 15, y),
                                               (x - 15, y - 5), (x - 5, y - 5)])
-
-def drawammo(x, y, counter=0):
+def draw_superpower(x, y):
+    pygame.draw.circle(screen, (0, 0, 205), (x, y), 20)
+    pygame.draw.polygon(screen,(random.randint(0, 205), random.randint(0, 205), random.randint(0, 205)), [(x, y+10), (x+8, y-8), (x, y), (x-8,y-8)] )
+def drawammo(x, y, counter= int(0)):
     if counter <= 2:
         counter += 1
         pygame.draw.circle(screen, (102, 102, 0), (x + 5, y), 5)
@@ -173,18 +178,23 @@ while running:
                 ammo -= 1
     fontbonus = pygame.font.Font('freesansbold.ttf', bonus_size)
     # MOVEMENT
-    if keys[pygame.K_a]:
-        playerx -= move_speed
-        player_angle += 10
-    if keys[pygame.K_d]:
-        playerx += move_speed
-        player_angle -= 10
-    if keys[pygame.K_w]:
-        playery -= move_speed
-        player_angle += 10
-    if keys[pygame.K_s]:
-        playery += move_speed
-        player_angle -= 10
+    if supercounter <= 0:
+        if keys[pygame.K_a]:
+            playerx -= move_speed
+            player_angle += 10
+        if keys[pygame.K_d]:
+            playerx += move_speed
+            player_angle -= 10
+        if keys[pygame.K_w]:
+            playery -= move_speed
+            player_angle += 10
+        if keys[pygame.K_s]:
+            playery += move_speed
+            player_angle -= 10
+    else:
+        player_angle += 36
+        bullets.append((playerx, playery, player_angle))
+        playerx += 7
 
     # SPAWNING LOGIC
     if difficulty == 'easy':
@@ -196,6 +206,8 @@ while running:
             spawn_asteroid()
         if random.random() < 0.02:
             spawn_asteroid2()
+        if random.random() < 0.03:
+            spawn_superpower()
     elif difficulty == 'medium':
         asteroid_speed = 8
         if random.random() < 0.006:
@@ -206,16 +218,20 @@ while running:
             spawn_asteroid()
         if random.random() < 0.08:
             spawn_asteroid2()
+        if random.random() < 0.005:
+            spawn_superpower()
     elif difficulty == 'hard':
         asteroid_speed = 9
         if random.random() < 0.005:
             spawn_heal()
         if random.random() < 0.005:
             spawn_ammo()
-        if random.random() < 0.08:
+        if random.random() < 0.1:
             spawn_asteroid()
         if random.random() < 0.1:
             spawn_asteroid2()
+        if random.random() < 0.005:
+            spawn_superpower()
     if playerx > WIDTH:
         playerx = -10
     elif playerx < 0:
@@ -275,7 +291,7 @@ while running:
         if ax2 < WIDTH + size2:
             new_asteroids2.append((ax2, ay2, size2))
     asteroids2 = new_asteroids2
-
+    supercounter -= 1
 
     new_heals = []
     for hx, hy in heals:
@@ -286,7 +302,15 @@ while running:
             else:
                 new_heals.append((hx, hy))
     heals = new_heals
-
+    new_superpowers = []
+    for sx, sy in superpowers:
+        sy += pickup_speed
+        if sy < HEIGHT:
+            if check_collision(sx, sy, playerx, playery, 20, playerwidth):
+                supercounter = 20
+            else:
+                new_superpowers.append((sx, sy))
+    superpowers = new_superpowers
     # AMMO PACK MOVEMENT AND PICKUP
     new_ammos = []
     for amx, amy in ammos:
@@ -312,6 +336,8 @@ while running:
         drawheal(hx, hy)
     for amx, amy in ammos:
         drawammo(amx, amy)
+    for sx, sy in superpowers:
+        draw_superpower(sx, sy)
 
     # HUD
     display_text(f'Health: {health}', 10, 10)

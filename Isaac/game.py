@@ -55,12 +55,18 @@ health_width = WIDTH
 health_bar_color = (0, 255, 0)
 
 # Power-up variables
-power_up_color = (0, 255, 0)  # Green color for power-up
+power_up_color = (255, 0, 255)  
+power_up_color2 = (0, 255, 0)
+power_up_color3 = (255, 0, 0)
 power_up_radius = 15
-power_up = None  # Initially, no power-up is active
+power_up = None
+power_up2 = None
+power_up3 = None
 last_power_up_time = pygame.time.get_ticks()
 active_speed_boost = False
+active_dmg_boost = False
 speed_boost_end_time = 0
+dmg_boost_end_time = 0
 
 # Function to get random direction
 def get_random_direction():
@@ -98,6 +104,24 @@ class PowerUp:
 
     def draw(self):
         pygame.draw.circle(screen, power_up_color, (self.x, self.y), self.radius)
+
+class PowerUp2:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.radius = power_up_radius
+
+    def draw(self):
+        pygame.draw.circle(screen, power_up_color2, (self.x, self.y), self.radius)
+
+class PowerUp3:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.radius = power_up_radius
+
+    def draw(self):
+        pygame.draw.circle(screen, power_up_color3, (self.x, self.y), self.radius)
 
 # Draw text function
 def draw_text(text, font, color, x, y):
@@ -194,6 +218,8 @@ while running:
         # Handle power-up spawning
         if pygame.time.get_ticks() - last_power_up_time > 10000:  # Spawn every 10 seconds
             power_up = PowerUp(random.randint(0, WIDTH - power_up_radius * 2), random.randint(0, HEIGHT - power_up_radius * 2))
+            power_up2 = PowerUp2(random.randint(0, WIDTH - power_up_radius * 2), random.randint(0, HEIGHT - power_up_radius * 2))
+            power_up3 = PowerUp3(random.randint(0, WIDTH - power_up_radius * 2), random.randint(0, HEIGHT - power_up_radius * 2))
             last_power_up_time = pygame.time.get_ticks()
 
         # Check for power-up collection
@@ -205,7 +231,20 @@ while running:
             spaceship_speed = 25  # Temporary speed boost
             speed_boost_end_time = pygame.time.get_ticks() + 5000  # Boost lasts for 5 seconds
             power_up = None  # Remove the power-up after collection
-            
+        if power_up2 and (spaceship_x < power_up2.x + power_up2.radius and spaceship_x + spaceship_width > power_up2.x and
+                          spaceship_y < power_up2.y + power_up2.radius and spaceship_y + spaceship_height > power_up2.y):
+            health_width += 384
+            player_health += 3
+            power_up2 = None
+        if power_up3 and (spaceship_x < power_up3.x + power_up3.radius and spaceship_x + spaceship_width > power_up3.x and
+                         spaceship_y < power_up3.y + power_up3.radius and spaceship_y + spaceship_height > power_up3.y):
+            health_bar_color = (225, 0, 0)
+            active_dmg_boost = True
+            dmg_bullet1 = 4 
+            dmg_bullet2 = 8
+            dmg_bullet3 = 14
+            speed_boost_end_time = pygame.time.get_ticks() + 4 
+            power_up3 = None  
 
         if spaceship_x > 1280:
             spaceship_x = 0
@@ -359,6 +398,10 @@ while running:
          # Draw power-up
         if power_up:
             power_up.draw()
+        if power_up2:
+            power_up2.draw()
+        if power_up3:
+            power_up3.draw()
 
 
     # Must be the last two lines of the game loop

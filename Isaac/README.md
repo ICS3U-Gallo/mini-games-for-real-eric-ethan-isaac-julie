@@ -11,5 +11,5 @@ Slow and largest bullet: Middle click
 
 Get power-ups by running over them
 Green: heal
-Red: damage boost
-Purple: speed boost
+Red: damage boost (lasts 4 seconds)
+Purple: speed boost (lasts 5 seconds)

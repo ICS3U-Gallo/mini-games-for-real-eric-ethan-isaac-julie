@@ -72,12 +72,13 @@ last_teleport_time = 0
 player_angle = 0
 sword_rect = pygame.Rect(0, 0, 0, 0)
 charged = False
+enemy_spawn_time = 0
+difficulty_level = 1
+difficulty_increase_interval = 10
+last_difficulty_increase_time = time.time()
+enemies_killed = 0
 
-enemies = [
-    {"id": 1, "x": 100, "y": HEIGHT - 150, "width": 50, "height": 50, "speed": 2, "health": 100, "attack_start_time": 0, "looking_left": True},
-    {"id": 2, "x": 300, "y": HEIGHT - 150, "width": 50, "height": 50, "speed": 3, "health": 100, "attack_start_time": 0, "looking_left": False},
-    {"id": 3, "x": 500, "y": HEIGHT - 150, "width": 50, "height": 50, "speed": 4, "health": 100, "attack_start_time": 0, "looking_left": True},
-]
+enemies = []
 
 enemy_hit = False
 
@@ -212,7 +213,7 @@ def player_move_to(x, y, pa=0):
     print(f"Player: {player_x}, {player_y}")
 
 def swing(damage=10):
-    global enemy_hit
+    global enemy_hit, enemies_killed
 
     for enemy in enemies:
         enemy_rect = pygame.Rect(enemy["x"], enemy["y"], enemy["width"], enemy["height"])
@@ -220,9 +221,29 @@ def swing(damage=10):
             enemy["health"] -= damage
             if enemy["health"] <= 0:
                 enemies.remove(enemy)
+                enemies_killed += 1
             insert_damage_number(damage, enemy["x"], enemy["y"], False)
             enemy_hit = True
 
+def spawn_enemy():
+    enemy = {
+        "id": random_enemy_id(),
+        "x": random.randint(0, WIDTH - 50),
+        "y": HEIGHT - 150,
+        "width": 50,
+        "height": 50,
+        "speed": random.randint(1, 3),
+        "health": 100,
+        "attack_start_time": 0,
+        "looking_left": random.choice([True, False])
+    }
+    enemies.append(enemy)
+
+def calculate_enemy_damage(base_damage):
+    return base_damage + (difficulty_level * 2)
+
+def calculate_attack_interval(base_interval):
+    return max(base_interval - (difficulty_level * 10), 30)
 
 # ---------------------------
 
@@ -234,6 +255,15 @@ while running:
             running = False
         elif event.type == pygame.KEYUP and event.key == pygame.K_SPACE:
             space_released = True
+
+    if time.time() - enemy_spawn_time > max(5 - difficulty_level * 0.1, 0.5):
+        spawn_enemy()
+        enemy_spawn_time = time.time()
+
+    if time.time() - last_difficulty_increase_time > difficulty_increase_interval:
+        difficulty_level += 1
+        last_difficulty_increase_time = time.time()
+        print(f"Difficulty increased to {difficulty_level}")
 
     if player_health > 0:
         keys = pygame.key.get_pressed()
@@ -322,7 +352,7 @@ while running:
                             swing(2)
 
         for enemy in enemies:
-            if time.time() - enemy["attack_start_time"] > 5 * time_scale and random.randint(0, 300 * time_scale) < enemy["speed"]:
+            if time.time() - enemy["attack_start_time"] > 5 * time_scale and random.randint(0, calculate_attack_interval(300) * time_scale) < enemy["speed"]:
                 if enemy["x"] < player_x:
                     enemy["looking_left"] = False
                 else:
@@ -354,10 +384,11 @@ while running:
                     if abs(player_x - enemy["x"]) > 50:
                         move_enemy_forward(enemy, enemy["speed"])
                     enemy_sword_rect = pygame.Rect(enemy["sword_body_x"], enemy["sword_body_y"], enemy_sword_body_width, enemy_sword_body_height)
-                    if not enemy["hit_player"] and enemy_sword_rect.colliderect(pygame.Rect(player_x, player_y, player_width, player_height)):
+                    if time_scale == 1 and not enemy["hit_player"] and enemy_sword_rect.colliderect(pygame.Rect(player_x, player_y, player_width, player_height)):
                         enemy["hit_player"] = True
-                        player_health -= 10
-                        insert_damage_number(10, player_x, player_y, True)
+                        damage = calculate_enemy_damage(10)
+                        player_health -= damage
+                        insert_damage_number(damage, player_x, player_y, True)
             else:
                 enemy["hit_player"] = False
 
@@ -425,6 +456,9 @@ while running:
     else:
         game_over_text = font.render("Game Over", True, (255, 0, 0))
         screen.blit(game_over_text, (WIDTH // 2 - 50, HEIGHT // 2 - 50))
+
+    score_text = font.render(f"Enemies Killed: {enemies_killed}", True, (255, 255, 255))
+    screen.blit(score_text, (10, 10))
 
     # pygame.draw.rect(screen, (0, 0, 0), sword_rect, 2)
         
